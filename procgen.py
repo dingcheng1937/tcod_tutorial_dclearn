@@ -7,6 +7,9 @@ import entity_factories
 from game_map import GameMap
 import tile_types
 
+if TYPE_CHECKING:
+    from engine import Engine
+
 class RectangularRoom:
     def __init__(self, x: int, y: int, width: int, height: int):
         self.x1 = x
@@ -69,9 +72,6 @@ def tunnel_between(
     for x, y in tcod.los.bresenham((corner_x, corner_y), (x2, y2)).tolist():
         yield x, y
 
-if TYPE_CHECKING:
-    from entity import Entity
-
 def generate_dungeon(
     max_rooms: int,
     room_min_size: int,
@@ -79,10 +79,11 @@ def generate_dungeon(
     map_width: int,
     map_height: int,
     max_monsters_per_room: int,
-    player: Entity,
+    engine: Engine,
 ) -> GameMap:
     """Generate a new dungeon map."""
-    dungeon = GameMap(map_width, map_height, entities=[player])
+    player = engine.player
+    dungeon = GameMap(engine, map_width, map_height, entities=[player])
 
     rooms: List[RectangularRoom] = []
 
@@ -106,7 +107,7 @@ def generate_dungeon(
 
         if len(rooms) == 0:
             # The first room, where the player starts.
-            player.x, player.y = new_room.center
+            player.place(*new_room.center, dungeon)
         else:  # All rooms after the first.
             # Dig out a tunnel between this room and the previous one.
             for x, y in tunnel_between(rooms[-1].center, new_room.center):
